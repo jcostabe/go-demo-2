@@ -20,7 +20,7 @@ push:
 	docker push ${REPO}\/${NAME}\:${VERSION}
 
 run:
-	docker run -d --name ${NAME} -p ${EXTERNAL_PORT}:${INTERNAL_PORT} ${NAME}\:${VERSION}
+	docker run -d --name ${NAME} -p ${EXTERNAL_PORT}:${INTERNAL_PORT} ${REPO}\/${NAME}\:${VERSION}
 
 delete:
 	docker rm -f ${NAME}
