@@ -1,11 +1,17 @@
 apiVersion: v1
+data:
+  application.yaml: |+
+    # Service
+    environment: local
+    serviceName: go-demo-2
+    version: ${APP_VERSION}
+    serverPort: 8080
+
+    # DB
+    mongodbHost: "mongodb"
+    mongodbPort: 27017
+
+
 kind: ConfigMap
 metadata:
   name: go-demo-cfg
-data:
-  application.yaml: |+
-    environment: local
-    serviceName: go-demo-2
-    serverPort: 8080
-    mongodbHost: "mongodb"
-    mongodbPort: 27017
