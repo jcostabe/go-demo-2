@@ -18,12 +18,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/jcostabe/go-demo-2/model"
+	"go-demo-2/model"
 )
 
-var appName = "go-demo-2"
-var version = "2.0"
-
+var cfg *model.Config
 var collection *mongo.Collection
 var ctx = context.TODO()
 
@@ -232,11 +230,13 @@ func getHostInfo(w http.ResponseWriter, r *http.Request) {
 
 func getVersion(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
+	cfg = model.DefaultConfiguration()
+
 	logrus.Infof("Version info")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	io.WriteString(w, version)
+	io.WriteString(w, cfg.ServiceConfig.Version)
 	logrus.Infof("Elapsed time of /version: %v", time.Since(start))
 
 }
@@ -339,13 +339,10 @@ func initRestService() {
 
 func main() {
 
-	appVersion := os.Getenv("VERSION")
-	fmt.Println(appVersion)
-
-	cfg := model.DefaultConfiguration()
+	cfg = model.DefaultConfiguration()
 
 	color.Blue.Println("Service: " + cfg.ServiceConfig.Name)
-	color.Green.Println("Version: " + version)
+	color.Green.Println("Version: " + cfg.ServiceConfig.Version)
 	color.Yellow.Println("Config profile: " + cfg.Environment)
 
 	initDb(cfg)

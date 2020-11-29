@@ -3,6 +3,7 @@ package model
 import(
 	"fmt"
 	"github.com/spf13/viper"
+	"os"
 )
 
 type Config struct {
@@ -13,6 +14,7 @@ type Config struct {
 
 type ServiceConfig struct {
 	Name string
+	Version string
 }
 
 type DatabaseConfig struct {
@@ -34,6 +36,7 @@ func DefaultConfiguration() *Config {
 		Environment: viper.GetString("environment"),
 		ServiceConfig: ServiceConfig{
 			Name: viper.GetString("serviceName"),
+			Version: os.ExpandEnv(viper.GetString("version")),
 		},
 		DatabaseConfig: DatabaseConfig{
 			Host: viper.GetString("mongodbHost"),
