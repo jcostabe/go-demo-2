@@ -1,0 +1,5 @@
+mongodbHost: "mongodb"
+mongodbPort: 27017
+environment: "local"
+serviceName: go-demo
+serverPort: 8080
