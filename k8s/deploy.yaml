@@ -26,6 +26,16 @@ spec:
       - image: jcostabe/go-demo-2
         imagePullPolicy: Always
         name: go-demo-2
+        readinessProbe:
+          httpGet:
+            path: /isAlive
+            port: 8080
+        livenessProbe:
+          httpGet:
+            path: /isAlive
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 3
         resources: 
           limits:
             cpu: 100m
