@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: go-demo-2
+    tier: backend
+  name: go-demo-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-demo-2
+      tier: backend
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: go-demo-2
+        tier: backend
+    spec:
+      containers:
+      - image: jcostabe/go-demo-2
+        imagePullPolicy: Always
+        name: go-demo-2
+        resources: 
+          limits:
+            cpu: 100m
+            memory: 50Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi 
