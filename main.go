@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go-demo-2/model"
+	"github.com/jcostabe/go-demo-2/model"
 )
 
 var cfg *model.Config
