@@ -30,8 +30,6 @@ COPY --from=builder /etc/group /etc/group
 
 COPY --from=builder /go/src/github.com/jcostabe/go-demo/main /go/src/github.com/jcostabe/go-demo/main
 
-COPY config /config
-
 USER gouser:gouser
 
 ENTRYPOINT [ "/go/src/github.com/jcostabe/go-demo/main" ]  
