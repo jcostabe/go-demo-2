@@ -5,11 +5,11 @@ metadata:
 data:
   application.yaml: |+
     # Service
-    environment: local
+    environment: sandbox
     serviceName: go-demo-2
     version: ${APP_VERSION}
     serverPort: 8080
 
     # DB
-    mongodbHost: "mongodb-svc"
+    mongodbHost: "mongodb"
     mongodbPort: 27017

@@ -4,7 +4,7 @@ metadata:
   name: go-demo-svc
 spec:
   selector:
-    app: go-demo
+    app: go-demo-2
   ports:
     - protocol: TCP
       port: 8080
