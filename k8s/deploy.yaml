@@ -23,9 +23,15 @@ spec:
         tier: backend
     spec:
       containers:
-      - image: jcostabe/go-demo-2
+      - image: jcostabe/go-demo-2:1.0
         imagePullPolicy: Always
         name: go-demo-2
+        env:
+        - name: APP_VERSION
+          value: "1.0"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
         readinessProbe:
           httpGet:
             path: /isAlive
@@ -34,12 +40,16 @@ spec:
           httpGet:
             path: /isAlive
             port: 8080
-          initialDelaySeconds: 3
-          periodSeconds: 3
+          initialDelaySeconds: 10
+          periodSeconds: 30
         resources: 
           limits:
             cpu: 100m
             memory: 50Mi
           requests:
             cpu: 100m
-            memory: 50Mi 
+            memory: 50Mi
+      volumes:
+        - name: config-volume
+          configMap:
+            name: go-demo-cfg          

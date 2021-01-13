@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -17,13 +19,38 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/jcostabe/go-demo-2/model"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var cfg *model.Config
 var collection *mongo.Collection
 var ctx = context.TODO()
+
+var (
+	clientConnections = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "active_connections",
+		Help: "Number of active client connections",
+	}, []string{"service"})
+
+	transactionsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "http_req_processed_total",
+		Help: "Total number of HTTP requests processed",
+	}, []string{"code", "method"})
+
+	responseTimeHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "http_req_duration_seconds",
+		Help:    "Duration of all HTTP requests",
+		Buckets: []float64{0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60},
+	}, []string{
+		"service",
+		"code",
+		"method",
+		"path",
+	})
+)
 
 type Book struct {
 	ID     string  `bson: "id"`
@@ -42,7 +69,6 @@ func getBooks(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	logrus.Infof("Request /api/books")
 	w.Header().Set("Content-Type", "application/json")
-	//params := mux.Vars(r)
 
 	findOptions := options.Find()
 	findOptions.SetLimit(5)
@@ -134,7 +160,6 @@ func createBook(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode("Book entry created successfully")
 
-
 	logrus.Infof("Book had been inserted: ", insertResult.InsertedID)
 	logrus.Infof("Elapsed time of /api/books response: %v", time.Since(start))
 
@@ -206,6 +231,7 @@ func deleteBooks(w http.ResponseWriter, r *http.Request) {
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
+
 	logrus.Infof("Alive method")
 
 	w.Header().Set("Content-Type", "application/json")
@@ -242,6 +268,7 @@ func getVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {
+
 	logrus.SetFormatter(&logrus.TextFormatter{
 		TimestampFormat: "2006-01-02T15:04:05.000",
 		FullTimestamp:   true,
@@ -315,6 +342,66 @@ func insertInitialData() {
 
 }
 
+func delayedResponse(w http.ResponseWriter, r *http.Request) {
+
+	start := time.Now()
+	code := http.StatusOK
+	clientConnections.WithLabelValues(cfg.ServiceConfig.Name).Inc()
+	defer func() { recordMetrics(r.URL.Path, r.Method, code, start) }()
+
+	randDuration := rand.Intn(10)
+	sleep := time.Duration(randDuration) * time.Second
+	logrus.Infof("Delayed response with a duration of %v", sleep)
+	time.Sleep(sleep)
+
+	params := r.URL.Query()
+	message := params.Get("message")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+
+	io.WriteString(w, message)
+	logrus.Infof("Elapsed time of %s: %v", r.URL.Path, time.Since(start))
+
+}
+
+func randomError(w http.ResponseWriter, r *http.Request) {
+
+	start := time.Now()
+	code := http.StatusOK
+	clientConnections.WithLabelValues(cfg.ServiceConfig.Name).Inc()
+	defer func() { recordMetrics(r.URL.Path, r.Method, code, start) }()
+
+	switch randErr := rand.Intn(3); randErr {
+	case 1:
+		code = http.StatusNotFound
+		w.WriteHeader(code)
+		w.Write([]byte("404 - Not found"))
+	case 2:
+		code = http.StatusInternalServerError
+		w.WriteHeader(code)
+		w.Write([]byte("500 - Internal server error"))
+	default:
+		w.WriteHeader(code)
+		w.Write([]byte("200 - It works fine!"))
+
+	}
+
+	logrus.Infof("Elapsed time of %s: %v", r.URL.Path, time.Since(start))
+}
+
+func recordMetrics(requestPath string, requestMethod string, statusCode int, start time.Time) {
+
+	code := strconv.Itoa(statusCode)
+	transactionsTotal.WithLabelValues(code, requestPath).Inc()
+
+	clientConnections.WithLabelValues(cfg.ServiceConfig.Name).Dec()
+
+	duration := time.Since(start)
+	responseTimeHistogram.WithLabelValues(cfg.ServiceConfig.Name, code, requestMethod, requestPath).Observe(duration.Seconds())
+
+}
+
 func initRestService() {
 
 	r := mux.NewRouter()
@@ -324,6 +411,10 @@ func initRestService() {
 	r.HandleFunc("/isAlive", healthCheckHandler).Methods("GET")
 	r.HandleFunc("/info", getHostInfo).Methods("GET")
 	r.HandleFunc("/version", getVersion).Methods("GET")
+
+	r.HandleFunc("/echoWithDelay", delayedResponse).Methods("GET")
+	r.HandleFunc("/randomError", randomError).Methods("GET")
+
 	r.Path("/metrics").Handler(promhttp.Handler())
 
 	r.HandleFunc("/api/books", getBooks).Methods("GET")
